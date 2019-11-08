@@ -1,0 +1,28 @@
+{
+  "name": "dialog-editor",
+  "version": "1.0.0",
+  "description": "Dialog Editor",
+  "main": "main.js",
+  "scripts": {
+    "prepare-fonts": "goofoffline \"https://fonts.googleapis.com/css?family=Arvo|Montserrat\"",
+    "start": "sass src/scss:src/css && electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LiteOnE/Dialog-Editor.git"
+  },
+  "author": "Luty",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LiteOnE/Dialog-Editor/issues"
+  },
+  "homepage": "https://github.com/LiteOnE/Dialog-Editor#readme",
+  "devDependencies": {
+    "electron-nightly": "^8.0.0-nightly.20191105",
+    "google-fonts-offline": "^0.1.5",
+    "sass": "^1.22.3"
+  },
+  "dependencies": {
+    "@shopify/draggable": "^1.0.0-beta.8"
+  }
+}

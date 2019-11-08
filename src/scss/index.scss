@@ -1,0 +1,177 @@
+html,
+body {
+    margin: 0;
+    font-family: "Montserrat", sans-serif;
+    background: #23272a;
+    overflow: hidden;
+    font-size: 1rem;
+}
+
+:focus {
+    outline: none;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2c2f33;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #8e4e4ec4;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    //background: #913a3fc4;
+    background: #242222cc;
+}
+
+::selection {
+    background: #8e4e4ec4;
+}
+
+.title-bar {
+    -webkit-app-region: drag;
+    height: 25px;
+    background-color: rgb(43, 43, 43);
+    padding: none;
+    margin: 0px;
+    font-size: 15px;
+    color: rgb(148, 148, 148);
+    user-select: none;
+
+    .options {
+        -webkit-app-region: no-drag;
+        display: flex;
+        float: left;
+        margin-left: 25px;
+
+        .option {
+            padding: 2px 5px 4px 5px;
+            cursor: pointer;
+
+            &:hover {
+                background: #3f4348;
+            }
+        }
+    }
+
+    .appname {
+        margin: 2px;
+        position: absolute;
+        top: 0;
+        left: 50vw;
+        transform: translateX(-50%);
+    }
+
+    .buttons {
+        -webkit-app-region: no-drag;
+        float: right;
+        display: flex;
+
+        .button {
+            font-family: "Segoe MDL2 Assets";
+            padding: 5px 8px;
+            cursor: pointer;
+        }
+    }
+}
+
+#btn-min:hover,
+#btn-max:hover {
+    background: #3f4348;
+}
+
+#btn-close:hover {
+    background: #8e4e4e;
+}
+
+
+//
+
+.wrapper {
+    overflow: hidden scroll;
+}
+
+.card {
+    display: flex;
+    color: #949494;
+    background-color: #2c2f33;
+    border: solid 2px;
+    border-radius: 10px;
+    margin: 10px;
+    padding: 10px;
+    font-size: 25px;
+
+    .id {
+        text-align: center;
+        flex: 0 0 40px;
+    }
+
+    .pair {
+        width: calc(100% - 149px);
+        margin: 0 10px;
+        border-right: solid 2px;
+        border-left: solid 2px;
+
+        .msg {
+            .text {
+                padding: 5px 10px;
+                margin: 0 10px;
+
+                &:empty:before {
+                    color: #505050;
+                    content: "Empty message"
+                }
+
+                &:empty:focus:before {
+                    content: ""
+                }
+            }
+
+            .attached {
+                padding: 5px 10px;
+                margin: 0 10px;
+                border-radius: 10px;
+                background-color: #3f4348;
+                color: #dedede;
+                font-size: 15px;
+                min-width: 45px;
+                display: inline-block;
+
+                &:empty:before {
+                    color: #909090;
+                    cursor: pointer;
+                    content: "No attachment"
+                }
+
+                &:empty:focus:before {
+                    content: ""
+                }
+            }
+        }
+
+        .delimiter {
+            margin: 10px;
+            border-bottom: solid 1px;
+        }
+    }
+
+    .lau,
+    .seq {
+        flex: 0 0 40px;
+        background-color: #583d3d;
+
+        transition: background-color 500ms;
+
+        &.enabled {
+            background-color: #335f37;
+        }
+    }
+
+    .seq {
+        margin-right: 5px;
+    }
+}
