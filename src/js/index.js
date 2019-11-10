@@ -3,27 +3,39 @@ const fs = require('fs');
 const { remote } = require('electron');
 const $ = require("../libs/jquery-3.4.1.slim.min.js");
 
-function addCard() {
-    $('.wrapper').append(`
-        <div class="card">
-            <div class="id">
-                10
-            </div>
+const g_appName = 'Dialog Editor';
+
+let g_filePath = null;
+
+let addCardBtn = null;
+let g_cardCount = 0;
+
+const updateAddButton = () => addCardBtn.children('.id').text(g_cardCount);
+const updateAppTitle = (modified) => $('.appname').text(g_appName + ' - ' + (g_filePath ? g_filePath.split('\\').pop().split('.')[0] : '(New file)') + (modified ? '*' : ''));
+
+function addCard(charText, charAttached, playerText, playerAttached, sequential, launching) {
+    addCardBtn.before(`
+        <div class="card card--isDraggable">
+            <div class="id">${g_cardCount}</div>
             <div class="pair">
                 <div class="msg">
-                    <div class="text" contenteditable="true">Sas</div>
-                    <div class="attached" contenteditable="true">Bob Floppy</div>
+                    <div class="text" contenteditable="true">${(charText ? charText : '')}</div>
+                    <div class="attached" contenteditable="true">${(charAttached ? charAttached : '')}</div>
                 </div>
                 <div class="delimiter"></div>
                 <div class="msg">
-                    <div class="text" contenteditable="true"></div>
-                    <div class="attached" contenteditable="true"></div>
+                    <div class="text" contenteditable="true">${(playerText ? playerText : '')}</div>
+                    <div class="attached" contenteditable="true">${(playerAttached ? playerAttached : '')}</div>
                 </div>
             </div>
-            <div class="seq"></div>
-            <div class="lau"></div>
+            <div class="seq indicator ${(sequential ? 'enabled' : '')}"></div>
+            <div class="lau indicator ${(launching ? 'enabled' : '')}"></div>
         </div>
     `);
+
+    g_cardCount += 1;
+
+    updateAddButton()
 }
 
 $(() => {
@@ -31,14 +43,22 @@ $(() => {
 
     BrowserWindow.toggleDevTools();
 
-    $('#btn-new').click(() => { });
+    $('#btn-new').click(() => {
+        $('.card--isDraggable').remove();
+        g_cardCount = 0;
+        g_filePath = null;
+
+        updateAppTitle(true);
+        updateAddButton();
+    });
+
     $('#btn-open').click(() => {
         let filePaths =
             remote.dialog.showOpenDialogSync(
                 BrowserWindow,
                 {
                     properties: ['openFile'],
-                    filters: [{ name: 'Notes File', extensions: ['json', 'pnf'] }]
+                    filters: [{ name: 'Chat File', extensions: ['json'] }]
                 }
             );
 
@@ -54,27 +74,55 @@ $(() => {
         fs.readFile(g_filePath, (err, data) => {
             if (err) throw err;
 
-            let tempObj = JSON.parse(data.toString());
+            $('.card--isDraggable').remove();
+            g_cardCount = 0;
 
-            g_notesData.tagsMap = new Map(tempObj.tagsMap);
-            g_notesData.notes = new Map(tempObj.notes);
-            g_notesData.order = tempObj.order;
+            let chatObject = JSON.parse(data.toString());
 
-            //render tags:
-            for (var [tag_id, tag_name] of g_notesData.tagsMap) {
-                addTagToList(tag_name, tag_id)
+            for (let i = 0; i < chatObject.lines.length; i += 2) {
+                addCard(
+                    chatObject.lines[i],
+                    chatObject.attached[i],
+                    chatObject.lines[i + 1],
+                    chatObject.attached[i + 1],
+                    chatObject.sequential[i >> 1],
+                    chatObject.launching[i >> 1]
+                );
             }
 
-            g_tagNextId = tag_id + 1;
+            chatObject = null;
 
-            for (var [note_id, note_obj] of g_notesData.notes) {
-                addNoteToList(note_id, note_obj)
-            }
-
-            g_noteNextId = note_id + 1;
+            updateAppTitle();
         })
     });
+
     $('#btn-save').click(() => {
+
+        let chatObject = {
+            lines: [],
+            attached: [],
+            sequential: [],
+            launching: []
+        };
+
+        $('.card .pair .msg .text').each((i, e) => {
+            chatObject.lines.push($(e).text());
+        });
+
+        $('.card .pair .msg .attached').each((i, e) => {
+            chatObject.attached.push($(e).text());
+        })
+
+        $('.card .seq').each((i, e) => {
+            chatObject.sequential.push($(e).hasClass('enabled'));
+        })
+
+        $('.card .lau').each((i, e) => {
+            chatObject.launching.push($(e).hasClass('enabled'));
+        })
+
+        console.log(JSON.stringify(chatObject, null, 4));
+
         if (g_filePath == null) {
             let saveFilePath =
                 remote.dialog.showSaveDialogSync(
@@ -82,8 +130,7 @@ $(() => {
                     {
                         properties: ['openFile'],
                         filters: [
-                            { name: 'Notes File', extensions: ['pnf'] },
-                            { name: 'Notes File JSON', extensions: ['json'] }
+                            { name: 'Chat File', extensions: ['json'] }
                         ]
                     }
                 );
@@ -97,17 +144,9 @@ $(() => {
             }
         }
 
-        //store file
+        fs.writeFileSync(g_filePath, JSON.stringify(chatObject));
 
-        let tempObj = {
-            tagsMap: Array.from(g_notesData.tagsMap.entries()),
-            notes: Array.from(g_notesData.notes.entries()),
-            order: g_notesData.order
-        }
-
-        fs.writeFileSync(g_filePath, JSON.stringify(tempObj));
-
-        console.log('stored!');
+        updateAppTitle();
     });
 
     $('#btn-min').click(() => {
@@ -129,19 +168,42 @@ $(() => {
 
     //
 
-    addCard();
-    addCard();
-    addCard();
-    addCard();
+    addCardBtn = $('#add-card');
+    addCardBtn.click(() => {
+        addCard();
+    });
 
     //
     const containerSelector = '.wrapper';
     const sortable = new Sortable(document.querySelectorAll(containerSelector), {
-        draggable: '.card',
+        draggable: '.card--isDraggable',
         mirror: {
             appendTo: containerSelector,
             constrainDimensions: true,
+            xAxis: false
         }
+    });
+
+    sortable.on('sortable:stop', () => {
+        setTimeout(() => {
+            let cardIds = $('.wrapper .card--isDraggable .id');
+
+            for (let i = 0; i < g_cardCount; i += 1) {
+                $(cardIds).eq(i).text(i);
+            }
+        }, 100);
+    });
+
+    $('.wrapper').on('click', '.card', () => {
+        updateAppTitle(true);
+    })
+
+    $('.wrapper').on('click', '.indicator', (e) => {
+        let indicator = $(e.currentTarget);
+
+        indicator.hasClass('enabled') ?
+            indicator.removeClass('enabled') :
+            indicator.addClass('enabled');
     });
 })
 

@@ -12,7 +12,7 @@ body {
 }
 
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -24,22 +24,27 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    //background: #913a3fc4;
-    background: #242222cc;
+    background: #949494;
+    //background: #242222cc;
 }
 
 ::selection {
     background: #8e4e4ec4;
 }
 
+
+//
+
+$title_bar_h: 25px;
+
 .title-bar {
     -webkit-app-region: drag;
-    height: 25px;
-    background-color: rgb(43, 43, 43);
+    height: $title_bar_h;
+    background-color: #2b2b2b;
     padding: none;
     margin: 0px;
     font-size: 15px;
-    color: rgb(148, 148, 148);
+    color: #949494;
     user-select: none;
 
     .options {
@@ -91,9 +96,12 @@ body {
 
 //
 
-.wrapper {
+.content {
+    height: calc(100vh - #{$title_bar_h});
     overflow: hidden scroll;
 }
+
+.wrapper {}
 
 .card {
     display: flex;
@@ -104,6 +112,24 @@ body {
     margin: 10px;
     padding: 10px;
     font-size: 25px;
+
+    &.draggable--over {
+        color: #497ab7;
+        border: solid 2px #497ab7;
+
+        .pair .msg .text:empty:before {
+            color: #3d546f;
+        }
+    }
+
+    &.draggable-mirror {
+        color: #49b796;
+        border: solid 2px #49b796;
+
+        .pair .msg .text:empty:before {
+            color: #356154;
+        }
+    }
 
     .id {
         text-align: center;
@@ -123,7 +149,8 @@ body {
 
                 &:empty:before {
                     color: #505050;
-                    content: "Empty message"
+                    content: "Empty message";
+                    cursor: text;
                 }
 
                 &:empty:focus:before {
@@ -159,19 +186,37 @@ body {
         }
     }
 
-    .lau,
-    .seq {
+    .indicator {
         flex: 0 0 40px;
         background-color: #583d3d;
+        transition: background-color 250ms;
 
-        transition: background-color 500ms;
+        cursor: pointer;
 
         &.enabled {
             background-color: #335f37;
+            transition: background-color 250ms;
+        }
+
+        &.seq {
+            margin-right: 5px;
         }
     }
 
-    .seq {
-        margin-right: 5px;
+    &.add-card {
+        color: #bdbdbd;
+        background-color: #20589e;
+        border: solid 2px #497ab7;
+        cursor: pointer;
+
+        &:hover {
+            background-color: #2861a9;
+        }
+
+        .text {
+            margin-left: 10px;
+            padding-left: 20px;
+            border-left: solid 2px;
+        }
     }
 }
