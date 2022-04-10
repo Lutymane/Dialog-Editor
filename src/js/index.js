@@ -6,17 +6,23 @@ const $ = require("../libs/jquery-3.4.1.slim.min.js");
 const g_appName = 'Dialog Editor';
 
 let g_filePath = null;
+let g_localizationData = null;
 
 let addCardBtn = null;
 let g_cardCount = 0;
 
-const updateAddButton = () => addCardBtn.children('.id').text(g_cardCount);
-const updateAppTitle = (modified) => $('.appname').text(g_appName + ' - ' + (g_filePath ? g_filePath.split('\\').pop().split('.')[0] : '(New file)') + (modified ? '*' : ''));
+let g_modified = false;
+
+const updateAddButton = () => addCardBtn.children('.info').text(g_cardCount);
+const updateAppTitle = () => $('.appname').text(g_appName + ' - ' + (g_filePath ? g_filePath.split('\\').pop().split('.')[0] : '(New file)') + (g_modified ? '*' : ''));
 
 function addCard(charText, charAttached, playerText, playerAttached, sequential, launching) {
     addCardBtn.before(`
         <div class="card card--isDraggable">
-            <div class="id">${g_cardCount}</div>
+            <div class="info">
+                <id>${g_cardCount}</id>
+                <div class="delete-card"></div>
+            </div>
             <div class="pair">
                 <div class="msg">
                     <div class="text" contenteditable="true">${(charText ? charText : '')}</div>
@@ -28,8 +34,8 @@ function addCard(charText, charAttached, playerText, playerAttached, sequential,
                     <div class="attached" contenteditable="true">${(playerAttached ? playerAttached : '')}</div>
                 </div>
             </div>
-            <div class="seq indicator ${(sequential ? 'enabled' : '')}"></div>
-            <div class="lau indicator ${(launching ? 'enabled' : '')}"></div>
+            <div class="seq indicator ${(sequential ? 'enabled' : '')}"><tooltip>Sequential call</tooltip></div>
+            <div class="lau indicator ${(launching ? 'enabled' : '')}"><tooltip>Send at launch</tooltip></div>
         </div>
     `);
 
@@ -38,15 +44,91 @@ function addCard(charText, charAttached, playerText, playerAttached, sequential,
     updateAddButton()
 }
 
+function sortCardIds() {
+    let cardIds = $('.wrapper .card--isDraggable .info id');
+
+    for (let i = 0; i < g_cardCount; i += 1) {
+        $(cardIds).eq(i).text(i);
+    }
+}
+
+function saveDocument() {
+    if (!g_modified) {
+        return;
+    }
+
+    if (g_filePath == null) {
+        let saveFilePath =
+            remote.dialog.showSaveDialogSync(
+                BrowserWindow,
+                {
+                    properties: ['openFile'],
+                    filters: [
+                        { name: 'Chat File', extensions: ['json', 'en'] }
+                    ]
+                }
+            );
+
+        if (saveFilePath === undefined) {
+            //error no path
+            return;
+        }
+        else {
+            g_filePath = saveFilePath;
+        }
+    }
+
+    $('.card .pair .msg .text').each((i, e) => {
+        g_localizationData.dialog_lines.push($(e).text());
+    });
+
+    $('.card .pair .msg .attached').each((i, e) => {
+        g_localizationData.attached.push($(e).text());
+    })
+
+    $('.card .seq').each((i, e) => {
+        g_localizationData.sequential.push($(e).hasClass('enabled'));
+    })
+
+    $('.card .lau').each((i, e) => {
+        g_localizationData.launching.push($(e).hasClass('enabled'));
+    })
+
+    fs.writeFileSync(g_filePath, JSON.stringify(g_localizationData, null, 4));
+
+    g_localizationData.dialog_lines = [];
+    g_localizationData.attached = [];
+    g_localizationData.sequential = [];
+    g_localizationData.launching = [];
+
+    g_modified = false;
+
+    updateAppTitle();
+}
+
 $(() => {
+    g_localizationData = {};
+    g_localizationData.dialog_lines = [];
+    g_localizationData.attached = [];
+    g_localizationData.sequential = [];
+    g_localizationData.launching = [];
+
     let BrowserWindow = remote.getCurrentWindow();
 
-    BrowserWindow.toggleDevTools();
+    //BrowserWindow.toggleDevTools();
+
+    //Ctrl+S
+    $(document).on('keydown', e => {
+        if (e.ctrlKey && e.keyCode == 83 /*s*/) {
+            saveDocument();
+        }
+    })
 
     $('#btn-new').click(() => {
         $('.card--isDraggable').remove();
         g_cardCount = 0;
         g_filePath = null;
+        g_localizationData = null;
 
         updateAppTitle(true);
         updateAddButton();
@@ -58,7 +140,7 @@ $(() => {
                 BrowserWindow,
                 {
                     properties: ['openFile'],
-                    filters: [{ name: 'Chat File', extensions: ['json'] }]
+                    filters: [{ name: 'Chat File', extensions: ['json', 'en'] }]
                 }
             );
 
@@ -77,77 +159,31 @@ $(() => {
             $('.card--isDraggable').remove();
             g_cardCount = 0;
 
-            let chatObject = JSON.parse(data.toString());
+            g_localizationData = JSON.parse(data.toString());
 
-            for (let i = 0; i < chatObject.lines.length; i += 2) {
+            for (let i = 0; i < g_localizationData.dialog_lines.length; i += 2) {
                 addCard(
-                    chatObject.lines[i],
-                    chatObject.attached[i],
-                    chatObject.lines[i + 1],
-                    chatObject.attached[i + 1],
-                    chatObject.sequential[i >> 1],
-                    chatObject.launching[i >> 1]
+                    g_localizationData.dialog_lines[i],
+                    g_localizationData.attached[i],
+                    g_localizationData.dialog_lines[i + 1],
+                    g_localizationData.attached[i + 1],
+                    g_localizationData.sequential[i >> 1],
+                    g_localizationData.launching[i >> 1]
                 );
             }
 
-            chatObject = null;
+            g_localizationData.dialog_lines = [];
+            g_localizationData.attached = [];
+            g_localizationData.sequential = [];
+            g_localizationData.launching = [];
+
+            g_modified = false;
 
             updateAppTitle();
         })
     });
 
-    $('#btn-save').click(() => {
-
-        let chatObject = {
-            lines: [],
-            attached: [],
-            sequential: [],
-            launching: []
-        };
-
-        $('.card .pair .msg .text').each((i, e) => {
-            chatObject.lines.push($(e).text());
-        });
-
-        $('.card .pair .msg .attached').each((i, e) => {
-            chatObject.attached.push($(e).text());
-        })
-
-        $('.card .seq').each((i, e) => {
-            chatObject.sequential.push($(e).hasClass('enabled'));
-        })
-
-        $('.card .lau').each((i, e) => {
-            chatObject.launching.push($(e).hasClass('enabled'));
-        })
-
-        console.log(JSON.stringify(chatObject, null, 4));
-
-        if (g_filePath == null) {
-            let saveFilePath =
-                remote.dialog.showSaveDialogSync(
-                    BrowserWindow,
-                    {
-                        properties: ['openFile'],
-                        filters: [
-                            { name: 'Chat File', extensions: ['json'] }
-                        ]
-                    }
-                );
-
-            if (saveFilePath === undefined) {
-                //error no path
-                return;
-            }
-            else {
-                g_filePath = saveFilePath;
-            }
-        }
-
-        fs.writeFileSync(g_filePath, JSON.stringify(chatObject));
-
-        updateAppTitle();
-    });
+    $('#btn-save').click(saveDocument);
 
     $('#btn-min').click(() => {
         BrowserWindow.minimize();
@@ -185,25 +221,36 @@ $(() => {
     });
 
     sortable.on('sortable:stop', () => {
-        setTimeout(() => {
-            let cardIds = $('.wrapper .card--isDraggable .id');
-
-            for (let i = 0; i < g_cardCount; i += 1) {
-                $(cardIds).eq(i).text(i);
-            }
-        }, 100);
+        setTimeout(sortCardIds, 100);
     });
 
-    $('.wrapper').on('click', '.card', () => {
-        updateAppTitle(true);
+    let $wrapper = $(containerSelector);
+
+    $wrapper.on('click', '.card', () => {
+        g_modified = true;
+
+        updateAppTitle();
     })
 
-    $('.wrapper').on('click', '.indicator', (e) => {
+    $wrapper.on('click', '.indicator', e => {
         let indicator = $(e.currentTarget);
 
         indicator.hasClass('enabled') ?
             indicator.removeClass('enabled') :
             indicator.addClass('enabled');
+    });
+
+    $wrapper.on('click', '.card .delete-card', e => {
+        // @todo check why e.currentTarget is different in console log
+        // console.log(e);
+        // console.log(e.currentTarget);
+
+        $(e.currentTarget).closest('.card').remove();
+
+        g_cardCount -= 1;
+
+        sortCardIds();
+        updateAddButton();
     });
 })
 

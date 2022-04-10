@@ -33,6 +33,37 @@ body {
 }
 
 
+//tooltip
+tooltip {
+    visibility: hidden;
+    white-space: nowrap;
+    background-color: #3f4348;
+    color: #bdbdbd;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    top: calc(100% + 10px);
+    right: 0;
+    font-size: 1rem;
+}
+
+tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 15px; //indicator half - padding
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent #3f4348 transparent;
+}
+
+.indicator:hover tooltip {
+    visibility: visible;
+}
+
 //
 
 $title_bar_h: 25px;
@@ -131,9 +162,32 @@ $title_bar_h: 25px;
         }
     }
 
-    .id {
+    .info {
+        position: relative;
         text-align: center;
         flex: 0 0 40px;
+
+        .delete-card {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: padding 100ms linear;
+            font-family: "Segoe MDL2 Assets";
+            font-size: 20px;
+            padding: 5px;
+            cursor: pointer;
+
+            &:hover {
+                color: #fd2d2d;
+                font-size: 25px;
+                padding: 0;
+            }
+
+            &::before {
+                content: "\E74D"
+            }
+        }
     }
 
     .pair {
@@ -187,6 +241,7 @@ $title_bar_h: 25px;
     }
 
     .indicator {
+        position: relative;
         flex: 0 0 40px;
         background-color: #583d3d;
         transition: background-color 250ms;
